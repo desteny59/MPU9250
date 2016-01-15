@@ -34,6 +34,7 @@ class MPU9250{
       void  GyroCalibration();
       void  AccCalibration();
       void  MagCalibration(float uncalibrated_values[3]);
+      void  Calibration();
       void  UpdateRawData();
       void  FilterData();
       void  IMU_Update();
@@ -54,6 +55,9 @@ class MPU9250{
       int16_t GyroXcal;
       int16_t GyroYcal;
       int16_t GyroZcal;
+      int16_t CalInProgress;
+      float pitchcal;
+      float rollcal;
       float AccX;
       float AccY;
       float AccZ;
@@ -77,6 +81,7 @@ class MPU9250{
       float pitch;
       float roll;
       float yaw;
+      float heading;
 };
 
 #endif

@@ -36,19 +36,32 @@ void MPU9250::begin(){
 }
 
 void MPU9250::GyroCalibration(){
-  int i;
   long XX=0,YY=0,ZZ=0;
-  for(i=0;i<1000;i++){
+  for(int i=0;i<100;i++){
     UpdateRawData();
     XX += rawGyroX;
     YY += rawGyroY;
     ZZ += rawGyroZ;
   }
-  GyroXcal = XX /1000;
-  GyroYcal = YY /1000;
-  GyroZcal = ZZ /1000;
+  GyroXcal = XX /100;
+  GyroYcal = YY /100;
+  GyroZcal = ZZ /100;
   
 }
+
+void MPU9250::Calibration(){
+  float XX=0,YY=0;
+  GyroCalibration();
+  CalInProgress=1;
+  for(int i=0;i<100;i++){
+    IMU_Update();
+    XX += pitch;
+    YY += roll;
+  }
+  pitchcal = XX /100;
+  rollcal = YY /100;
+  CalInProgress=0;
+  }
 
 void MPU9250::AccCalibration(){
   
@@ -147,6 +160,8 @@ void MPU9250::FilterData(){
 }
 
 void MPU9250::IMU_Update(){
+  float XX=0,YY=0,ZZ=0;
+  float GX=0,GY=0;
   UpdateRawData(); // recupération des données des capteurs
   FilterData();    // filtrage des données
 
@@ -157,16 +172,25 @@ void MPU9250::IMU_Update(){
   float az2=AccZFiltered*AccZFiltered;
 
   //angled are radian, for degree (* 180/3.14159)
+
   //Pitch
-  pitch = atan2(AccXFiltered,sqrt(ay2+az2))/PI*180;
+  if(GyroXFiltered>0.1 || GyroXFiltered<-0.1) GX=GyroXFiltered;
+  XX = atan2(AccXFiltered,sqrt(ay2+az2))/PI*180-pitchcal;
+  if(CalInProgress==1) pitch=XX;
+  else  pitch = 0.90*(pitch + GX/100) + 0.1*XX;
     
   //Roll
-  roll = atan2(AccYFiltered,sqrt(ax2+az2))/PI*180;
+  if(GyroYFiltered>0.1 || GyroYFiltered<-0.1) GY=GyroYFiltered;
+  YY = atan2(AccYFiltered,sqrt(ax2+az2))/PI*180-rollcal;
+  if(CalInProgress==1) roll=YY;
+  else  roll = 0.90*(roll + GY/100) + 0.1*YY;
 
   //Yaw
   if(GyroZFiltered>0.1 || GyroZFiltered<-0.1)
   yaw += (GyroZFiltered/100);
-  //yaw=atan2((-MagYFiltered*cos(roll)+MagZFiltered*sin(roll)),(MagXFiltered*cos(pitch)+MagYFiltered*sin(pitch)*sin(roll)+MagZFiltered*sin(pitch)*cos(roll)));
+  
+  //Heading
+  heading=(atan2((-MagYFiltered*cos(roll)+MagZFiltered*sin(roll)),(MagXFiltered*cos(pitch)+MagYFiltered*sin(pitch)*sin(roll)+MagZFiltered*sin(pitch)*cos(roll)))/PI*180);
  
 }
 
